@@ -1,0 +1,595 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>世界時鐘（即時）</title>
+
+  <style>
+    /* ===== 字體檔請放在 index.html 同一層 =====
+       ./Iansui-Regular.ttf
+       ./獅尾四季春粗.ttf
+       ./獅尾四季春細.ttf
+    */
+    @font-face{
+      font-family: "Iansui";
+      src: url("./Iansui-Regular.ttf") format("truetype");
+      font-weight: 400;
+      font-style: normal;
+      font-display: swap;
+    }
+    @font-face{
+      font-family: "ShihweiTeaBold";
+      src: url("./獅尾四季春粗.ttf") format("truetype");
+      font-weight: 700;
+      font-style: normal;
+      font-display: swap;
+    }
+    @font-face{
+      font-family: "ShihweiTeaLight";
+      src: url("./獅尾四季春細.ttf") format("truetype");
+      font-weight: 400;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    :root {
+      --bg: #0b0f14;
+      --fg: #e8eef6;
+      --muted: rgba(232,238,246,.72);
+      --card: rgba(255,255,255,.06);
+      --border: rgba(255,255,255,.16);
+      --shadow: rgba(0,0,0,.35);
+      --btn-bg: rgba(255,255,255,.06);
+      --btn-border: rgba(255,255,255,.20);
+      --accent: rgba(120,170,255,.95);
+
+      --font: "Iansui", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans TC", "Microsoft JhengHei", Arial, sans-serif;
+    }
+
+    body[data-theme="light"]{
+      --bg: #ffffff;
+      --fg: #0f172a;
+      --muted: rgba(15,23,42,.68);
+      --card: rgba(15,23,42,.04);
+      --border: rgba(15,23,42,.12);
+      --shadow: rgba(0,0,0,.08);
+      --btn-bg: rgba(15,23,42,.04);
+      --btn-border: rgba(15,23,42,.14);
+      --accent: rgba(59,130,246,.95);
+    }
+
+    /* ===== 字體選項（只保留：芫荽體 + 獅尾四季春細/粗） ===== */
+    body[data-font="iansui"]{      --font: "Iansui", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans TC", "Microsoft JhengHei", Arial, sans-serif; }
+    body[data-font="tea-light"]{   --font: "ShihweiTeaLight", "Iansui", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans TC", "Microsoft JhengHei", Arial, sans-serif; }
+    body[data-font="tea-bold"]{    --font: "ShihweiTeaBold", "Iansui", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans TC", "Microsoft JhengHei", Arial, sans-serif; }
+
+    body{
+      margin:0;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: var(--font);
+      line-height: 1.35;
+      padding: 24px;
+    }
+
+    .wrap { max-width: 980px; margin: 0 auto; }
+
+    header{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+      flex-wrap:wrap;
+      margin-bottom: 14px;
+    }
+
+    h1{ font-size:22px; margin:0; letter-spacing:.3px; }
+    .hint{ color:var(--muted); font-size:13px; margin:6px 0 0; }
+
+    .toolbar{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+
+    .pill{
+      display:inline-flex;
+      gap:10px;
+      align-items:center;
+      padding:8px 10px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background: var(--card);
+      font-size:12px;
+      color: var(--muted);
+    }
+
+    button, select{
+      border:1px solid var(--btn-border);
+      border-radius:999px;
+      padding:7px 10px;
+      background: var(--btn-bg);
+      color: var(--fg);
+      cursor:pointer;
+      font-family: var(--font);
+    }
+    button:hover, select:hover{ border-color: var(--accent); }
+    button:active{ transform: translateY(1px); }
+
+    select{
+      padding-right: 28px;
+      appearance: none;
+      background-image:
+        linear-gradient(45deg, transparent 50%, var(--fg) 50%),
+        linear-gradient(135deg, var(--fg) 50%, transparent 50%);
+      background-position:
+        calc(100% - 16px) 50%,
+        calc(100% - 11px) 50%;
+      background-size: 5px 5px, 5px 5px;
+      background-repeat: no-repeat;
+    }
+
+    /* ===== Taiwan row ===== */
+    .tw-row{
+      border: 1px solid var(--border);
+      background: var(--card);
+      border-radius: 16px;
+      padding: 14px 14px 12px;
+      box-shadow: 0 10px 28px var(--shadow);
+      margin: 14px 0 14px;
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-end;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    /* 這裡改成：放大「台灣」，台北正常 */
+    .tw-left .title{
+      margin:0 0 4px;
+      letter-spacing: .3px;
+      display:flex;
+      align-items:baseline;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .tw-left .title .country{
+      font-size: 48px;  /* ✅ 台灣更大 */
+      font-weight: 950;
+      letter-spacing: .8px;
+    }
+    .tw-left .title .city{
+      font-size: 26px;  /* 台北相對正常 */
+      font-weight: 850;
+      opacity: .95;
+    }
+    .tw-left .sub{ margin:0; color:var(--muted); font-size:12px; }
+
+    .tw-right{ text-align:right; min-width:240px; }
+    .tw-right .time{
+      font-variant-numeric: tabular-nums;
+      font-size:34px;
+      font-weight:900;
+      letter-spacing:.6px;
+      margin:0;
+    }
+    .tw-right .date{
+      margin:6px 0 0;
+      font-size:13px;
+      color:var(--muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ===== Cards ===== */
+    .grid{
+      display:grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap:12px;
+      margin-top:10px;
+    }
+
+    .card{
+      border: 1px solid var(--border);
+      background: var(--card);
+      border-radius: 16px;
+      padding: 14px 14px 12px;
+      box-shadow: 0 10px 28px var(--shadow);
+      user-select: none;
+      transition: outline-color .08s ease, transform .08s ease;
+    }
+
+    .card[draggable="true"]{ cursor:grab; }
+    .card.dragging{ opacity:.55; cursor:grabbing; }
+
+    .card.drop-target{
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+      transform: translateY(-1px);
+    }
+
+    .topline{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:10px;
+    }
+
+    .cityline{ margin:0 0 6px; }
+    .cityline .country{
+      font-weight: 950;
+      font-size: 20px;
+      letter-spacing: .2px;
+    }
+    .cityline .sep{
+      opacity: .75;
+      margin: 0 6px;
+    }
+    .cityline .place{
+      font-weight: 750;
+      font-size: 15px;
+    }
+
+    .tz{ font-size:12px; color:var(--muted); margin:0 0 10px; }
+
+    .time{
+      font-variant-numeric: tabular-nums;
+      font-size:28px;
+      font-weight:900;
+      letter-spacing:.5px;
+      margin:0;
+    }
+    .date{
+      font-variant-numeric: tabular-nums;
+      color:var(--muted);
+      margin:6px 0 0;
+      font-size:13px;
+    }
+
+    .card-controls{ display:flex; gap:6px; align-items:center; }
+    .iconbtn{ padding: 6px 8px; border-radius: 10px; font-size: 12px; line-height: 1; }
+
+    .footer{ margin-top:14px; font-size:12px; color:var(--muted); }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>世界時鐘（即時更新）</h1>
+        <p class="hint">拖曳：放到另一張卡上會「兩張對調」；◀▶ 也是跟相鄰卡片對調（順序/字體/主題都會保存）</p>
+      </div>
+
+      <div class="toolbar">
+        <span class="pill">
+          <span>你的裝置時間：</span>
+          <strong id="localNow">--:--:--</strong>
+        </span>
+
+        <select id="fontSelect" title="選擇字體">
+          <option value="iansui">芫荽體｜手寫清爽</option>
+          <option value="tea-light">獅尾四季春（細）｜復古清秀</option>
+          <option value="tea-bold">獅尾四季春（粗）｜復古醒目</option>
+        </select>
+
+        <button id="toggleSeconds" type="button">切換秒數</button>
+        <button id="toggleTheme" type="button">切換日/夜間</button>
+        <button id="resetOrder" type="button">重置順序</button>
+      </div>
+    </header>
+
+    <section class="tw-row" aria-label="Taiwan time row">
+      <div class="tw-left">
+        <p class="title">
+          <span class="country">台灣</span>
+          <span class="city">｜台北</span>
+        </p>
+        <p class="sub">Asia/Taipei</p>
+      </div>
+      <div class="tw-right">
+        <p class="time" id="twTime">--:--:--</p>
+        <p class="date" id="twDate">----</p>
+      </div>
+    </section>
+
+    <main class="grid" id="grid"></main>
+
+    <div class="footer">
+      IANA 時區：Asia/Ho_Chi_Minh、Asia/Kolkata、Europe/Budapest、Asia/Jerusalem、Europe/Istanbul、America/New_York
+    </div>
+  </div>
+
+  <script>
+    const DEFAULT_PLACES = [
+      { id: "vn", label: "越南", city: "河內／胡志明", tz: "Asia/Ho_Chi_Minh" },
+      { id: "in", label: "印度", city: "新德里／孟買", tz: "Asia/Kolkata" },
+      { id: "hu", label: "匈牙利", city: "布達佩斯", tz: "Europe/Budapest" },
+      { id: "il", label: "以色列", city: "耶路撒冷／特拉維夫", tz: "Asia/Jerusalem" },
+      { id: "tr", label: "土耳其", city: "伊斯坦堡", tz: "Europe/Istanbul" },
+      { id: "ny", label: "美國", city: "紐約（New York）", tz: "America/New_York" },
+    ];
+
+    const LS_THEME   = "worldclock_theme";
+    const LS_ORDER   = "worldclock_order";
+    const LS_SECONDS = "worldclock_seconds";
+    const LS_FONT    = "worldclock_font";
+
+    const grid = document.getElementById("grid");
+    const localNowEl = document.getElementById("localNow");
+    const toggleSecondsBtn = document.getElementById("toggleSeconds");
+    const toggleThemeBtn = document.getElementById("toggleTheme");
+    const resetOrderBtn = document.getElementById("resetOrder");
+    const fontSelectEl = document.getElementById("fontSelect");
+
+    const twTimeEl = document.getElementById("twTime");
+    const twDateEl = document.getElementById("twDate");
+
+    let showSeconds = true;
+
+    function initTheme(){
+      const saved = localStorage.getItem(LS_THEME);
+      document.body.dataset.theme = (saved === "light" || saved === "dark") ? saved : "dark";
+    }
+    function toggleTheme(){
+      const cur = document.body.dataset.theme === "light" ? "light" : "dark";
+      const next = cur === "light" ? "dark" : "light";
+      document.body.dataset.theme = next;
+      localStorage.setItem(LS_THEME, next);
+    }
+
+    function initFont(){
+      const saved = localStorage.getItem(LS_FONT);
+      const ok = new Set(["iansui","tea-light","tea-bold"]);
+      const font = ok.has(saved) ? saved : "iansui";
+      document.body.dataset.font = font;
+      fontSelectEl.value = font;
+    }
+    function setFont(v){
+      document.body.dataset.font = v;
+      localStorage.setItem(LS_FONT, v);
+    }
+
+    function initSeconds(){
+      const s = localStorage.getItem(LS_SECONDS);
+      if (s === "0") showSeconds = false;
+      if (s === "1") showSeconds = true;
+    }
+    function toggleSeconds(){
+      showSeconds = !showSeconds;
+      localStorage.setItem(LS_SECONDS, showSeconds ? "1" : "0");
+      tick();
+    }
+
+    function loadPlacesWithOrder(){
+      const saved = localStorage.getItem(LS_ORDER);
+      if (!saved) return [...DEFAULT_PLACES];
+
+      try{
+        const order = JSON.parse(saved);
+        const map = new Map(DEFAULT_PLACES.map(p => [p.id, p]));
+        const ordered = [];
+        for (const id of order){
+          if (map.has(id)) ordered.push(map.get(id));
+          map.delete(id);
+        }
+        for (const p of map.values()) ordered.push(p);
+        return ordered;
+      } catch {
+        return [...DEFAULT_PLACES];
+      }
+    }
+
+    function saveOrderFromDOM(){
+      const ids = [...grid.querySelectorAll(".card")].map(el => el.dataset.id);
+      localStorage.setItem(LS_ORDER, JSON.stringify(ids));
+    }
+
+    function resetOrder(){
+      localStorage.removeItem(LS_ORDER);
+      renderCards([...DEFAULT_PLACES]);
+      saveOrderFromDOM();
+      tick();
+    }
+
+    function fmtTime(date, timeZone){
+      return new Intl.DateTimeFormat("zh-Hant-TW", {
+        timeZone,
+        hour: "2-digit",
+        minute: "2-digit",
+        second: showSeconds ? "2-digit" : undefined,
+        hour12: false,
+      }).format(date);
+    }
+
+    function fmtDate(date, timeZone){
+      return new Intl.DateTimeFormat("zh-Hant-TW", {
+        timeZone,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        weekday: "short",
+      }).format(date);
+    }
+
+    function swapElements(a, b){
+      if (!a || !b || a === b) return;
+      const parent = a.parentNode;
+      if (!parent || parent !== b.parentNode) return;
+
+      const ph = document.createElement("span");
+      ph.style.display = "none";
+      parent.replaceChild(ph, a);
+      parent.replaceChild(a, b);
+      parent.replaceChild(b, ph);
+    }
+
+    function clearDropTarget(){
+      grid.querySelectorAll(".card.drop-target").forEach(el => el.classList.remove("drop-target"));
+    }
+
+    function makeCard(p){
+      const card = document.createElement("section");
+      card.className = "card";
+      card.draggable = true;
+      card.dataset.tz = p.tz;
+      card.dataset.id = p.id;
+
+      card.innerHTML = `
+        <div class="topline">
+          <div>
+            <p class="cityline">
+              <span class="country">${p.label}</span>
+              <span class="sep">｜</span>
+              <span class="place">${p.city}</span>
+            </p>
+            <p class="tz">${p.tz}</p>
+          </div>
+          <div class="card-controls" aria-label="reorder controls">
+            <button class="iconbtn" type="button" data-move="left" title="與左邊對調">◀</button>
+            <button class="iconbtn" type="button" data-move="right" title="與右邊對調">▶</button>
+          </div>
+        </div>
+        <p class="time" data-time>--:--:--</p>
+        <p class="date" data-date>----</p>
+      `;
+
+      card.querySelector('[data-move="left"]').addEventListener("click", (e) => {
+        e.stopPropagation();
+        const prev = card.previousElementSibling;
+        if (prev && prev.classList.contains("card")) {
+          swapElements(card, prev);
+          saveOrderFromDOM();
+          tick();
+        }
+      });
+
+      card.querySelector('[data-move="right"]').addEventListener("click", (e) => {
+        e.stopPropagation();
+        const next = card.nextElementSibling;
+        if (next && next.classList.contains("card")) {
+          swapElements(card, next);
+          saveOrderFromDOM();
+          tick();
+        }
+      });
+
+      card.addEventListener("dragstart", onDragStart);
+      card.addEventListener("dragend", onDragEnd);
+
+      return card;
+    }
+
+    function renderCards(places){
+      grid.innerHTML = "";
+      for (const p of places){
+        grid.appendChild(makeCard(p));
+      }
+    }
+
+    let dragged = null;
+    let currentTarget = null;
+
+    function onDragStart(e){
+      dragged = this;
+      this.classList.add("dragging");
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData("text/plain", this.dataset.id);
+
+      if (e.dataTransfer.setDragImage) {
+        const ghost = this.cloneNode(true);
+        ghost.style.width = this.offsetWidth + "px";
+        ghost.style.opacity = "0.85";
+        ghost.style.position = "absolute";
+        ghost.style.top = "-1000px";
+        ghost.style.left = "-1000px";
+        document.body.appendChild(ghost);
+        e.dataTransfer.setDragImage(ghost, 20, 20);
+        setTimeout(() => document.body.removeChild(ghost), 0);
+      }
+    }
+
+    function onDragEnd(){
+      this.classList.remove("dragging");
+      dragged = null;
+      currentTarget = null;
+      clearDropTarget();
+    }
+
+    function onGridDragOver(e){
+      e.preventDefault();
+      if (!dragged) return;
+      e.dataTransfer.dropEffect = "move";
+
+      const el = document.elementFromPoint(e.clientX, e.clientY);
+      const target = el ? el.closest(".card") : null;
+
+      if (!target || target === dragged || !grid.contains(target)) {
+        if (currentTarget) {
+          currentTarget.classList.remove("drop-target");
+          currentTarget = null;
+        }
+        return;
+      }
+
+      if (currentTarget !== target){
+        clearDropTarget();
+        currentTarget = target;
+        currentTarget.classList.add("drop-target");
+      }
+    }
+
+    function onGridDrop(e){
+      e.preventDefault();
+      if (!dragged) return;
+
+      const el = document.elementFromPoint(e.clientX, e.clientY);
+      const target = el ? el.closest(".card") : null;
+
+      clearDropTarget();
+
+      if (target && target !== dragged && grid.contains(target)) {
+        swapElements(dragged, target);
+        saveOrderFromDOM();
+        tick();
+      }
+    }
+
+    grid.addEventListener("dragover", onGridDragOver);
+    grid.addEventListener("drop", onGridDrop);
+
+    function tick(){
+      const now = new Date();
+
+      localNowEl.textContent = new Intl.DateTimeFormat("zh-Hant-TW", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: showSeconds ? "2-digit" : undefined,
+        hour12: false,
+      }).format(now);
+
+      const tzTW = "Asia/Taipei";
+      twTimeEl.textContent = fmtTime(now, tzTW);
+      twDateEl.textContent = fmtDate(now, tzTW);
+
+      const cards = grid.querySelectorAll(".card");
+      for (const card of cards){
+        const tz = card.dataset.tz;
+        card.querySelector("[data-time]").textContent = fmtTime(now, tz);
+        card.querySelector("[data-date]").textContent = fmtDate(now, tz);
+      }
+    }
+
+    initTheme();
+    initSeconds();
+    initFont();
+
+    toggleThemeBtn.addEventListener("click", toggleTheme);
+    toggleSecondsBtn.addEventListener("click", toggleSeconds);
+    resetOrderBtn.addEventListener("click", resetOrder);
+    fontSelectEl.addEventListener("change", (e) => setFont(e.target.value));
+
+    const places = loadPlacesWithOrder();
+    renderCards(places);
+
+    tick();
+    setInterval(tick, 1000);
+  </script>
+</body>
+</html>
