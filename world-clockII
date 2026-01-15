@@ -1,0 +1,905 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>世界時鐘（即時）</title>
+
+  <style>
+    /* ===== 字體檔請放在 index.html 同一層 =====
+       ./Iansui-Regular.ttf
+       ./獅尾四季春粗.ttf
+       ./獅尾四季春細.ttf
+    */
+    @font-face{
+      font-family: "Iansui";
+      src: url("./Iansui-Regular.ttf") format("truetype");
+      font-weight: 400;
+      font-style: normal;
+      font-display: swap;
+    }
+    @font-face{
+      font-family: "ShihweiTeaBold";
+      src: url("./獅尾四季春粗.ttf") format("truetype");
+      font-weight: 700;
+      font-style: normal;
+      font-display: swap;
+    }
+    @font-face{
+      font-family: "ShihweiTeaLight";
+      src: url("./獅尾四季春細.ttf") format("truetype");
+      font-weight: 400;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    :root{
+      --bg:#0b0f14;
+      --fg:#e8eef6;
+      --muted:rgba(232,238,246,.72);
+      --card:rgba(255,255,255,.06);
+      --border:rgba(255,255,255,.16);
+      --shadow:rgba(0,0,0,.35);
+      --btn-bg:rgba(255,255,255,.06);
+      --btn-border:rgba(255,255,255,.20);
+      --accent:rgba(120,170,255,.95);
+
+      --font:"Iansui", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans TC", "Microsoft JhengHei", Arial, sans-serif;
+
+      /* ✅ 預設字體大小：1.05 */
+      --ui-scale: 1.05;
+
+      /* ✅ 工具列高度統一 */
+      --ctl-h: 38px;
+      --ctl-pad-x: 12px;
+    }
+
+    body[data-theme="light"]{
+      --bg:#ffffff;
+      --fg:#0f172a;
+      --muted:rgba(15,23,42,.68);
+      --card:rgba(15,23,42,.04);
+      --border:rgba(15,23,42,.12);
+      --shadow:rgba(0,0,0,.08);
+      --btn-bg:rgba(15,23,42,.04);
+      --btn-border:rgba(15,23,42,.14);
+      --accent:rgba(59,130,246,.95);
+    }
+
+    body[data-font="iansui"]{    --font:"Iansui", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans TC", "Microsoft JhengHei", Arial, sans-serif; }
+    body[data-font="tea-light"]{ --font:"ShihweiTeaLight","Iansui", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans TC", "Microsoft JhengHei", Arial, sans-serif; }
+    body[data-font="tea-bold"]{  --font:"ShihweiTeaBold","Iansui", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans TC", "Microsoft JhengHei", Arial, sans-serif; }
+
+    body{
+      margin:0;
+      background:var(--bg);
+      color:var(--fg);
+      font-family:var(--font);
+      line-height:1.35;
+      padding:24px;
+      font-size: calc(16px * var(--ui-scale));
+    }
+    .wrap{ max-width:980px; margin:0 auto; }
+
+    header{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+      flex-wrap:wrap;
+      margin-bottom:14px;
+    }
+    h1{ font-size: calc(22px * var(--ui-scale)); margin:0; letter-spacing:.3px; }
+    .hint{ color:var(--muted); font-size: calc(13px * var(--ui-scale)); margin:6px 0 0; }
+
+    .toolbar{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+
+    .pill{
+      display:inline-flex;
+      gap:10px;
+      align-items:center;
+      padding:8px 10px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background:var(--card);
+      font-size: calc(12px * var(--ui-scale));
+      color:var(--muted);
+      height: var(--ctl-h);
+      box-sizing: border-box;
+    }
+
+    button, select{
+      border:1px solid var(--btn-border);
+      border-radius:999px;
+      background:var(--btn-bg);
+      color:var(--fg);
+      cursor:pointer;
+      font-family:var(--font);
+      font-size: calc(13px * var(--ui-scale));
+
+      height: var(--ctl-h);
+      padding: 0 var(--ctl-pad-x);
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      box-sizing: border-box;
+      white-space: nowrap;
+    }
+    button:hover, select:hover{ border-color:var(--accent); }
+    button:active{ transform:translateY(1px); }
+
+    select{
+      padding-right:28px;
+      appearance:none;
+      background-image:
+        linear-gradient(45deg, transparent 50%, var(--fg) 50%),
+        linear-gradient(135deg, var(--fg) 50%, transparent 50%);
+      background-position:
+        calc(100% - 16px) 50%,
+        calc(100% - 11px) 50%;
+      background-size:5px 5px, 5px 5px;
+      background-repeat:no-repeat;
+    }
+
+    .scalebox{
+      display:inline-flex;
+      align-items:center;
+      gap:10px;
+
+      padding: 0 var(--ctl-pad-x);
+      height: var(--ctl-h);
+      box-sizing: border-box;
+
+      border-radius:999px;
+      border:1px solid var(--border);
+      background:var(--card);
+      font-size: calc(12px * var(--ui-scale));
+      color:var(--muted);
+      white-space: nowrap;
+    }
+    .scalebox .label{ white-space: nowrap; }
+
+    .scaleBtns{
+      display:inline-flex;
+      gap:6px;
+      align-items:center;
+      flex: 0 0 auto;
+    }
+    .scalebtn{
+      border:1px solid var(--btn-border);
+      background:var(--btn-bg);
+      color:var(--fg);
+      cursor:pointer;
+      font-family:var(--font);
+      font-size: calc(13px * var(--ui-scale));
+      border-radius:999px;
+
+      height: calc(var(--ctl-h) - 10px);
+      padding: 0 10px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      box-sizing:border-box;
+      font-weight: 950;
+      line-height: 1;
+    }
+    .scalebtn:hover{ border-color:var(--accent); }
+    .scalebtn:active{ transform:translateY(1px); }
+
+    /* ===== Taiwan row ===== */
+    .tw-row{
+      border:1px solid var(--border);
+      background:var(--card);
+      border-radius:16px;
+      padding:14px 14px 12px;
+      box-shadow:0 10px 28px var(--shadow);
+      margin:14px 0 14px;
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-end;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+    .tw-left .title{
+      margin:0 0 4px;
+      letter-spacing:.3px;
+      display:flex;
+      align-items:baseline;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .tw-left .title .country{
+      font-size: calc(48px * var(--ui-scale));
+      font-weight:950;
+      letter-spacing:.8px;
+    }
+    .tw-left .title .city{
+      font-size: calc(26px * var(--ui-scale));
+      font-weight:850;
+      opacity:.95;
+    }
+    /* ✅ 1) 刪除 Asia/Taipei 之後，不再需要 sub 那行 */
+
+    .tw-right{ text-align:right; min-width:240px; }
+
+    /* ✅ 2) 日期移到時間前方，且兩者同大小同粗體：共用 tw-primary */
+    .tw-primary{
+      font-variant-numeric: tabular-nums;
+      font-size: calc(34px * var(--ui-scale));
+      font-weight:900;
+      letter-spacing:.6px;
+      margin:0;
+      display:flex;
+      justify-content:flex-end;
+      gap:12px;
+      flex-wrap:wrap;
+      align-items:baseline;
+    }
+    .tw-primary span{ white-space:nowrap; }
+
+    /* ===== Sections ===== */
+    .section{
+      margin-top:14px;
+      border:1px solid var(--border);
+      background:var(--card);
+      border-radius:16px;
+      padding:12px;
+      box-shadow:0 10px 28px var(--shadow);
+    }
+    .section-head{
+      display:flex;
+      align-items:baseline;
+      justify-content:space-between;
+      gap:10px;
+      flex-wrap:wrap;
+      margin:2px 2px 10px;
+    }
+    .section-title{
+      margin:0;
+      font-size: calc(14px * var(--ui-scale));
+      font-weight:900;
+      letter-spacing:.4px;
+    }
+    .section-sub{
+      margin:0;
+      font-size: calc(12px * var(--ui-scale));
+      color:var(--muted);
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));
+      gap:12px;
+    }
+
+    .card{
+      border:1px solid var(--border);
+      background:rgba(255,255,255,.04);
+      border-radius:16px;
+      padding:14px 14px 12px;
+      box-shadow:0 10px 28px var(--shadow);
+      user-select:none;
+      transition:outline-color .08s ease, transform .08s ease;
+    }
+    .card[draggable="true"]{ cursor:grab; }
+    .card.dragging{ opacity:.55; cursor:grabbing; }
+    .card.drop-target{
+      outline:2px solid var(--accent);
+      outline-offset:2px;
+      transform:translateY(-1px);
+    }
+
+    .topline{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:10px;
+    }
+    .nameblock{ min-width:0; flex:1 1 auto; }
+
+    .countryline{
+      margin:0 0 8px;
+      display:flex;
+      align-items:baseline;
+      gap:10px;
+      min-width:0;
+      line-height:1.1;
+      padding-right: 4px;
+    }
+    .countryZh{
+      font-weight:950;
+      font-size: calc(24px * var(--ui-scale));
+      letter-spacing:.2px;
+      white-space:nowrap;
+    }
+    .countryEn{
+      font-weight:500;
+      font-size: calc(24px * var(--ui-scale));
+      color:var(--muted);
+      min-width:0;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+
+    .cityzh{
+      margin:0 0 4px;
+      font-weight:900;
+      font-size: calc(16px * var(--ui-scale));
+      letter-spacing:.1px;
+      line-height:1.15;
+    }
+
+    .cityen{
+      margin:0 0 10px;
+      font-weight:500;
+      font-size: calc(13px * var(--ui-scale));
+      color:var(--muted);
+      line-height:1.15;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .timedate{
+      margin:0;
+      display:flex;
+      align-items:baseline;
+      gap:10px;
+      flex-wrap:wrap;
+      font-variant-numeric: tabular-nums;
+    }
+    .tTime{
+      font-weight:950;
+      font-size: calc(24px * var(--ui-scale));
+      letter-spacing:.4px;
+      white-space:nowrap;
+    }
+    .tDate{
+      font-weight:500;
+      font-size: calc(17px * var(--ui-scale));
+      color:var(--muted);
+      white-space:nowrap;
+      letter-spacing:.1px;
+    }
+
+    .card-controls{ flex:0 0 auto; display:flex; align-items:flex-start; }
+    .iconbtn{
+      padding:6px 8px;
+      border-radius:10px;
+      font-size: calc(12px * var(--ui-scale));
+      line-height:1;
+      border:1px solid var(--btn-border);
+      background:var(--btn-bg);
+      cursor:pointer;
+    }
+    .iconbtn:hover{ border-color:var(--accent); }
+    .hidebtn{ font-weight:900; }
+
+    .chips{ display:flex; flex-wrap:wrap; gap:8px; }
+    .chip{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:7px 10px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background:rgba(255,255,255,.04);
+      cursor:pointer;
+      font-size: calc(12px * var(--ui-scale));
+      color:var(--fg);
+      user-select:none;
+    }
+    .chip:hover{ border-color:var(--accent); transform:translateY(-1px); }
+    .chip:active{ transform:translateY(0); }
+    .chip small{ color:var(--muted); font-size: calc(11px * var(--ui-scale)); }
+
+    .footer{ margin-top:14px; font-size: calc(12px * var(--ui-scale)); color:var(--muted); }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>世界時鐘（即時更新）</h1>
+        <p class="hint">上層：拖曳放到另一張卡上會「兩張對調」；✕ 收起到下層</p>
+      </div>
+
+      <div class="toolbar">
+        <span class="pill">
+          <span>你的裝置時間：</span>
+          <strong id="localNow">--:--</strong>
+        </span>
+
+        <select id="fontSelect" title="選擇字體">
+          <option value="iansui">芫荽體｜手寫清爽</option>
+          <option value="tea-light">獅尾四季春（細）｜復古清秀</option>
+          <option value="tea-bold">獅尾四季春（粗）｜復古醒目</option>
+        </select>
+
+        <button id="toggleSeconds" type="button">顯示秒數</button>
+        <button id="toggleTheme" type="button">切換日/夜間</button>
+
+        <span class="scalebox" aria-label="Font size controls">
+          <span class="label">字體大小</span>
+          <span class="scaleBtns">
+            <button id="scaleDown" class="scalebtn" type="button" title="縮小">−</button>
+            <button id="scaleUp" class="scalebtn" type="button" title="放大">＋</button>
+          </span>
+        </span>
+
+        <button id="resetAll" type="button">重置顯示/順序</button>
+      </div>
+    </header>
+
+    <!-- 台灣固定顯示 -->
+    <section class="tw-row" aria-label="Taiwan time row">
+      <div class="tw-left">
+        <p class="title">
+          <span class="country">台灣</span>
+          <span class="city">｜台北</span>
+        </p>
+      </div>
+
+      <div class="tw-right">
+        <!-- ✅ 2) 日期在前、時間在後，且同大小同粗體 -->
+        <p class="tw-primary">
+          <span id="twDatePrimary">--/-- (一)</span>
+          <span id="twTimePrimary">--:--</span>
+        </p>
+      </div>
+    </section>
+
+    <!-- 上層：顯示中 -->
+    <section class="section" aria-label="Visible clocks">
+      <div class="section-head">
+        <p class="section-title">顯示中</p>
+        <p class="section-sub" id="visibleCount">--</p>
+      </div>
+      <main class="grid" id="gridVisible"></main>
+    </section>
+
+    <!-- 下層：已收起 -->
+    <section class="section" aria-label="Hidden list">
+      <div class="section-head">
+        <p class="section-title">已收起</p>
+        <p class="section-sub">點名稱可恢復到上層（會加在最末）</p>
+      </div>
+      <div class="chips" id="chipsHidden"></div>
+    </section>
+
+    <div class="footer" id="tzFooter"></div>
+  </div>
+
+  <script>
+    const DEFAULT_HIDDEN = ["kh", "it", "kr", "br"];
+
+    const PLACES = [
+      { id:"vn", countryZh:"越南", countryEn:"Vietnam", cityZh:"河內／胡志明", cityEn:"Hanoi / Ho Chi Minh City", tz:"Asia/Ho_Chi_Minh" },
+      { id:"in", countryZh:"印度", countryEn:"India", cityZh:"新德里／孟買", cityEn:"New Delhi / Mumbai", tz:"Asia/Kolkata" },
+      { id:"hu", countryZh:"匈牙利", countryEn:"Hungary", cityZh:"布達佩斯", cityEn:"Budapest", tz:"Europe/Budapest" },
+      { id:"il", countryZh:"以色列", countryEn:"Israel", cityZh:"耶路撒冷／特拉維夫", cityEn:"Jerusalem / Tel Aviv", tz:"Asia/Jerusalem" },
+      { id:"tr", countryZh:"土耳其", countryEn:"Turkey", cityZh:"伊斯坦堡", cityEn:"Istanbul", tz:"Europe/Istanbul" },
+      { id:"ny", countryZh:"美國", countryEn:"United States", cityZh:"紐約", cityEn:"New York", tz:"America/New_York" },
+
+      { id:"kh", countryZh:"柬埔寨", countryEn:"Cambodia", cityZh:"金邊", cityEn:"Phnom Penh", tz:"Asia/Phnom_Penh" },
+      { id:"it", countryZh:"義大利", countryEn:"Italy", cityZh:"羅馬", cityEn:"Rome", tz:"Europe/Rome" },
+      { id:"kr", countryZh:"韓國", countryEn:"Korea", cityZh:"首爾", cityEn:"Seoul", tz:"Asia/Seoul" },
+      { id:"br", countryZh:"巴西", countryEn:"Brazil", cityZh:"聖保羅", cityEn:"São Paulo", tz:"America/Sao_Paulo" },
+    ];
+
+    const LS_THEME   = "worldclock_theme";
+    const LS_SECONDS = "worldclock_seconds";
+    const LS_FONT    = "worldclock_font";
+    const LS_VISIBLE_ORDER = "worldclock_visible_order";
+    const LS_HIDDEN  = "worldclock_hidden";
+    const LS_SCALE   = "worldclock_scale";
+
+    const gridVisible = document.getElementById("gridVisible");
+    const chipsHidden = document.getElementById("chipsHidden");
+    const visibleCount = document.getElementById("visibleCount");
+    const tzFooter = document.getElementById("tzFooter");
+
+    const localNowEl = document.getElementById("localNow");
+    const toggleSecondsBtn = document.getElementById("toggleSeconds");
+    const toggleThemeBtn = document.getElementById("toggleTheme");
+    const resetAllBtn = document.getElementById("resetAll");
+    const fontSelectEl = document.getElementById("fontSelect");
+
+    const scaleDownBtn = document.getElementById("scaleDown");
+    const scaleUpBtn = document.getElementById("scaleUp");
+
+    /* ✅ 台灣區塊：日期與時間（同大小同粗體） */
+    const twTimePrimaryEl = document.getElementById("twTimePrimary");
+    const twDatePrimaryEl = document.getElementById("twDatePrimary");
+
+    const placeMap = new Map(PLACES.map(p => [p.id, p]));
+
+    let showSeconds = false;
+
+    function initTheme(){
+      const saved = localStorage.getItem(LS_THEME);
+      document.body.dataset.theme = (saved === "light" || saved === "dark") ? saved : "dark";
+    }
+    function toggleTheme(){
+      const cur = document.body.dataset.theme === "light" ? "light" : "dark";
+      const next = cur === "light" ? "dark" : "light";
+      document.body.dataset.theme = next;
+      localStorage.setItem(LS_THEME, next);
+    }
+
+    function initFont(){
+      const saved = localStorage.getItem(LS_FONT);
+      const ok = new Set(["iansui","tea-light","tea-bold"]);
+      const font = ok.has(saved) ? saved : "iansui";
+      document.body.dataset.font = font;
+      fontSelectEl.value = font;
+    }
+    function setFont(v){
+      document.body.dataset.font = v;
+      localStorage.setItem(LS_FONT, v);
+    }
+
+    function setSecondsButtonText(){
+      toggleSecondsBtn.textContent = showSeconds ? "隱藏秒數" : "顯示秒數";
+    }
+    function initSeconds(){
+      const s = localStorage.getItem(LS_SECONDS);
+      if (s === null) {
+        showSeconds = false;
+        localStorage.setItem(LS_SECONDS, "0");
+      } else {
+        showSeconds = (s === "1");
+      }
+      setSecondsButtonText();
+    }
+    function toggleSeconds(){
+      showSeconds = !showSeconds;
+      localStorage.setItem(LS_SECONDS, showSeconds ? "1" : "0");
+      setSecondsButtonText();
+      tick();
+    }
+
+    const SCALE_MIN = 0.8;
+    const SCALE_MAX = 1.4;
+    const SCALE_STEP = 0.05;
+    const DEFAULT_SCALE = 1.05;
+
+    function clamp(n, a, b){ return Math.max(a, Math.min(b, n)); }
+
+    function applyScale(scale){
+      const s = clamp(scale, SCALE_MIN, SCALE_MAX);
+      document.documentElement.style.setProperty("--ui-scale", String(s));
+      localStorage.setItem(LS_SCALE, String(s));
+    }
+    function initScale(){
+      const raw = localStorage.getItem(LS_SCALE);
+      const s = raw ? Number(raw) : DEFAULT_SCALE;
+      applyScale(Number.isFinite(s) ? s : DEFAULT_SCALE);
+    }
+    function getScale(){
+      const v = getComputedStyle(document.documentElement).getPropertyValue("--ui-scale").trim();
+      const n = Number(v);
+      return Number.isFinite(n) ? n : DEFAULT_SCALE;
+    }
+    function scaleUp(){ applyScale(getScale() + SCALE_STEP); }
+    function scaleDown(){ applyScale(getScale() - SCALE_STEP); }
+
+    function loadArray(key){
+      const raw = localStorage.getItem(key);
+      if (!raw) return null;
+      try {
+        const arr = JSON.parse(raw);
+        return Array.isArray(arr) ? arr : null;
+      } catch {
+        return null;
+      }
+    }
+    function saveArray(key, arr){
+      localStorage.setItem(key, JSON.stringify(arr));
+    }
+
+    function loadState(){
+      let hidden = loadArray(LS_HIDDEN);
+      if (!hidden) hidden = ["kh","it","kr","br"];
+      hidden = hidden.filter(id => placeMap.has(id));
+      hidden = [...new Set(hidden)];
+
+      let visible = loadArray(LS_VISIBLE_ORDER);
+      if (!visible) visible = [];
+      visible = visible.filter(id => placeMap.has(id));
+      visible = visible.filter(id => !hidden.includes(id));
+      visible = [...new Set(visible)];
+
+      for (const p of PLACES){
+        if (!visible.includes(p.id) && !hidden.includes(p.id)) visible.push(p.id);
+      }
+      for (const id of DEFAULT_HIDDEN){
+        if (!hidden.includes(id) && !visible.includes(id)) hidden.push(id);
+      }
+      return { visible, hidden };
+    }
+
+    function saveState(visible, hidden){
+      saveArray(LS_VISIBLE_ORDER, visible);
+      saveArray(LS_HIDDEN, hidden);
+    }
+
+    function resetAll(){
+      localStorage.removeItem(LS_VISIBLE_ORDER);
+      localStorage.removeItem(LS_HIDDEN);
+      state = loadState();
+      renderAll();
+      tick();
+    }
+
+    function fmtTime(date, timeZone){
+      return new Intl.DateTimeFormat("zh-Hant-TW", {
+        timeZone,
+        hour: "2-digit",
+        minute: "2-digit",
+        second: showSeconds ? "2-digit" : undefined,
+        hour12: false,
+      }).format(date);
+    }
+    function fmtMD(date, timeZone){
+      const parts = new Intl.DateTimeFormat("zh-Hant-TW", { timeZone, month:"numeric", day:"numeric" }).formatToParts(date);
+      const m = parts.find(p => p.type === "month")?.value ?? "--";
+      const d = parts.find(p => p.type === "day")?.value ?? "--";
+      return `${m}/${d}`;
+    }
+    function fmtWeekdayNarrow(date, timeZone){
+      return new Intl.DateTimeFormat("zh-Hant-TW", { timeZone, weekday:"narrow" }).format(date);
+    }
+    function fmtDate(date, timeZone){
+      return `${fmtMD(date, timeZone)} (${fmtWeekdayNarrow(date, timeZone)})`;
+    }
+
+    function swapElements(a, b){
+      if (!a || !b || a === b) return;
+      const parent = a.parentNode;
+      if (!parent || parent !== b.parentNode) return;
+      const ph = document.createElement("span");
+      ph.style.display = "none";
+      parent.replaceChild(ph, a);
+      parent.replaceChild(a, b);
+      parent.replaceChild(b, ph);
+    }
+
+    function makeCard(p){
+      const card = document.createElement("section");
+      card.className = "card";
+      card.draggable = true;
+      card.dataset.id = p.id;
+      card.dataset.tz = p.tz;
+
+      card.innerHTML = `
+        <div class="topline">
+          <div class="nameblock">
+            <p class="countryline">
+              <span class="countryZh">${p.countryZh}</span>
+              <span class="countryEn">${p.countryEn}</span>
+            </p>
+            <p class="cityzh">${p.cityZh}</p>
+            <p class="cityen">${p.cityEn}</p>
+            <p class="timedate">
+              <span class="tTime" data-time>--:--</span>
+              <span class="tDate" data-date>--/-- (一)</span>
+            </p>
+          </div>
+          <div class="card-controls" aria-label="controls">
+            <button class="iconbtn hidebtn" type="button" data-act="hide" title="收起到下方">✕</button>
+          </div>
+        </div>
+      `;
+
+      card.querySelector('[data-act="hide"]').addEventListener("click", (e) => {
+        e.stopPropagation();
+        hidePlace(p.id);
+      });
+
+      card.addEventListener("dragstart", onDragStart);
+      card.addEventListener("dragend", onDragEnd);
+
+      return card;
+    }
+
+    function makeChip(p){
+      const chip = document.createElement("div");
+      chip.className = "chip";
+      chip.dataset.id = p.id;
+      chip.innerHTML = `<strong>${p.countryZh}</strong><small>｜${p.cityZh}</small>`;
+      chip.title = "點一下恢復到上方（會加在最末）";
+      chip.addEventListener("click", () => unhidePlace(p.id));
+      return chip;
+    }
+
+    function renderVisible(){
+      gridVisible.innerHTML = "";
+      for (const id of state.visible){
+        const p = placeMap.get(id);
+        if (!p) continue;
+        gridVisible.appendChild(makeCard(p));
+      }
+      visibleCount.textContent = `${state.visible.length} 個時鐘`;
+    }
+
+    function renderHidden(){
+      chipsHidden.innerHTML = "";
+      if (state.hidden.length === 0){
+        const empty = document.createElement("div");
+        empty.style.color = "var(--muted)";
+        empty.style.fontSize = "12px";
+        empty.textContent = "（目前沒有收起的地區）";
+        chipsHidden.appendChild(empty);
+        return;
+      }
+      for (const id of state.hidden){
+        const p = placeMap.get(id);
+        if (!p) continue;
+        chipsHidden.appendChild(makeChip(p));
+      }
+    }
+
+    function renderFooter(){
+      tzFooter.textContent = "提示：公司網路若擋 GitHub Pages，可改用手機網路或請 IT 放行該網域。";
+    }
+
+    function renderAll(){
+      renderVisible();
+      renderHidden();
+      renderFooter();
+      attachGridDnD();
+    }
+
+    function hidePlace(id){
+      if (!placeMap.has(id)) return;
+      state.visible = state.visible.filter(x => x !== id);
+      state.hidden = state.hidden.filter(x => x !== id);
+      state.hidden.push(id);
+      saveState(state.visible, state.hidden);
+      renderAll();
+      tick();
+    }
+
+    function unhidePlace(id){
+      if (!placeMap.has(id)) return;
+      state.hidden = state.hidden.filter(x => x !== id);
+      state.visible = state.visible.filter(x => x !== id);
+      state.visible.push(id);
+      saveState(state.visible, state.hidden);
+      renderAll();
+      tick();
+    }
+
+    // Drag & Drop (SWAP)
+    let dragged = null;
+    let currentTarget = null;
+
+    function onDragStart(e){
+      dragged = this;
+      this.classList.add("dragging");
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData("text/plain", this.dataset.id);
+
+      if (e.dataTransfer.setDragImage) {
+        const ghost = this.cloneNode(true);
+        ghost.style.width = this.offsetWidth + "px";
+        ghost.style.opacity = "0.85";
+        ghost.style.position = "absolute";
+        ghost.style.top = "-1000px";
+        ghost.style.left = "-1000px";
+        document.body.appendChild(ghost);
+        e.dataTransfer.setDragImage(ghost, 20, 20);
+        setTimeout(() => document.body.removeChild(ghost), 0);
+      }
+    }
+
+    function onDragEnd(){
+      this.classList.remove("dragging");
+      dragged = null;
+      currentTarget = null;
+      clearDropTarget();
+    }
+
+    function clearDropTarget(){
+      gridVisible.querySelectorAll(".card.drop-target").forEach(el => el.classList.remove("drop-target"));
+    }
+
+    function onGridDragOver(e){
+      e.preventDefault();
+      if (!dragged) return;
+      e.dataTransfer.dropEffect = "move";
+
+      const el = document.elementFromPoint(e.clientX, e.clientY);
+      const target = el ? el.closest(".card") : null;
+
+      if (!target || target === dragged || !gridVisible.contains(target)) {
+        if (currentTarget) {
+          currentTarget.classList.remove("drop-target");
+          currentTarget = null;
+        }
+        return;
+      }
+
+      if (currentTarget !== target){
+        clearDropTarget();
+        currentTarget = target;
+        currentTarget.classList.add("drop-target");
+      }
+    }
+
+    function onGridDrop(e){
+      e.preventDefault();
+      if (!dragged) return;
+
+      const el = document.elementFromPoint(e.clientX, e.clientY);
+      const target = el ? el.closest(".card") : null;
+
+      clearDropTarget();
+
+      if (target && target !== dragged && gridVisible.contains(target)) {
+        swapElements(dragged, target);
+        state.visible = [...gridVisible.querySelectorAll(".card")].map(el => el.dataset.id);
+        saveState(state.visible, state.hidden);
+        tick();
+      }
+    }
+
+    function attachGridDnD(){
+      gridVisible.removeEventListener("dragover", onGridDragOver);
+      gridVisible.removeEventListener("drop", onGridDrop);
+      gridVisible.addEventListener("dragover", onGridDragOver);
+      gridVisible.addEventListener("drop", onGridDrop);
+    }
+
+    function tick(){
+      const now = new Date();
+
+      localNowEl.textContent = new Intl.DateTimeFormat("zh-Hant-TW", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: showSeconds ? "2-digit" : undefined,
+        hour12: false,
+      }).format(now);
+
+      const tzTW = "Asia/Taipei";
+
+      /* ✅ 台灣區塊：日期在前、時間在後（同大小同粗體由 CSS 控制） */
+      twDatePrimaryEl.textContent = fmtDate(now, tzTW);
+      twTimePrimaryEl.textContent = fmtTime(now, tzTW);
+
+      const cards = gridVisible.querySelectorAll(".card");
+      for (const card of cards){
+        const tz = card.dataset.tz;
+        card.querySelector("[data-time]").textContent = fmtTime(now, tz);
+        card.querySelector("[data-date]").textContent = fmtDate(now, tz);
+      }
+    }
+
+    // init
+    initTheme();
+    initSeconds();
+    initFont();
+    initScale();
+
+    toggleThemeBtn.addEventListener("click", toggleTheme);
+    toggleSecondsBtn.addEventListener("click", toggleSeconds);
+    resetAllBtn.addEventListener("click", resetAll);
+    fontSelectEl.addEventListener("change", (e) => setFont(e.target.value));
+
+    scaleUpBtn.addEventListener("click", scaleUp);
+    scaleDownBtn.addEventListener("click", scaleDown);
+
+    let state = loadState();
+    renderAll();
+
+    tick();
+    setInterval(tick, 1000);
+  </script>
+</body>
+</html>
